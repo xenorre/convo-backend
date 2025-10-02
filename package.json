@@ -1,0 +1,30 @@
+{
+  "name": "convo-backend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xenorre/convo-backend.git"
+  },
+  "keywords": [],
+  "author": "xenorre",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/xenorre/convo-backend/issues"
+  },
+  "homepage": "https://github.com/xenorre/convo-backend#readme",
+  "description": "",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.19.0"
+  }
+}
