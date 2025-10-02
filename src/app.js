@@ -4,6 +4,8 @@ import cookieParser from "cookie-parser";
 import logger from "#config/logger.js";
 import morgan from "morgan";
 
+import authRoutes from "#routes/auth.routes.js";
+
 const app = express();
 
 // Middleware
@@ -16,6 +18,8 @@ app.use(
     stream: { write: (message) => logger.info(message.trim()) },
   })
 );
+
+app.use("/api/auth", authRoutes);
 
 app.get("/", (req, res) => {
   res.status(200).send("Welcome to Convo API!");
