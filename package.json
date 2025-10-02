@@ -6,6 +6,17 @@
     "dev": "node --watch src/index.js",
     "start": "node src/index.js"
   },
+  "imports": {
+    "#src/*": "./src/*",
+    "#config/*": "./src/config/*",
+    "#middleware/*": "./src/middleware/*",
+    "#models/*": "./src/models/*",
+    "#routes/*": "./src/routes/*",
+    "#controllers/*": "./src/controllers/*",
+    "#services/*": "./src/services/*",
+    "#utils/*": "./src/utils/*",
+    "#validations/*": "./src/validations/*"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/xenorre/convo-backend.git"
