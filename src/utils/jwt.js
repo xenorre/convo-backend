@@ -1,15 +1,15 @@
 import logger from "#config/logger.js";
 import jwt from "jsonwebtoken";
+import { ENV } from "#config/env.js";
 
-const JWT_SECRET =
-  process.env.JWT_SECRET || "your-secret-key-please-change-it-in-production";
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "1d";
+const jwtSecret = ENV.JWT_SECRET;
+const jwtExpiresIn = ENV.JWT_EXPIRES_IN;
 
 export const jwttoken = {
   sign: (payload) => {
     try {
-      const token = jwt.sign(payload, JWT_SECRET, {
-        expiresIn: JWT_EXPIRES_IN,
+      const token = jwt.sign(payload, jwtSecret, {
+        expiresIn: jwtExpiresIn,
       });
       return token;
     } catch (e) {
@@ -19,7 +19,7 @@ export const jwttoken = {
   },
   verify: (token) => {
     try {
-      const decoded = jwt.verify(token, JWT_SECRET);
+      const decoded = jwt.verify(token, jwtSecret);
       return decoded;
     } catch (error) {
       logger.error("Failed to verify JWT:", error);
