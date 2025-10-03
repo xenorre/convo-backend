@@ -36,3 +36,39 @@ export const createUser = async ({ fullName, email, password }) => {
     throw e;
   }
 };
+
+export const comparePassword = async (password, hashedPassword) => {
+  try {
+    return await bcrypt.compare(password, hashedPassword);
+  } catch (e) {
+    logger.error(`Error comparing password: ${e}`);
+    throw new Error("Error comparing password");
+  }
+};
+
+export const authenticateUser = async ({ email, password }) => {
+  try {
+    const user = await User.findOne({
+      email: email.toLowerCase().trim(),
+    });
+
+    if (!user) {
+      throw new Error("Invalid email or password");
+    }
+
+    const isPasswordValid = await comparePassword(password, user.password);
+
+    if (!isPasswordValid) {
+      throw new Error("Invalid email or password");
+    }
+
+    logger.info(`User ${user.email} authenticated successfully`);
+
+    // Return user without password field
+    const { ...userWithoutPassword } = user;
+    return userWithoutPassword;
+  } catch (e) {
+    logger.error(`Error authenticating user: ${e}`);
+    throw e;
+  }
+};
