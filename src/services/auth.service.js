@@ -64,9 +64,15 @@ export const authenticateUser = async ({ email, password }) => {
 
     logger.info(`User ${user.email} authenticated successfully`);
 
-    // Return user without password field
-    const { ...userWithoutPassword } = user;
-    return userWithoutPassword;
+    // Return a sanitized object with explicit id field
+    return {
+      id: String(user._id),
+      email: user.email,
+      fullName: user.fullName,
+      profilePic: user.profilePic,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
   } catch (e) {
     logger.error(`Error authenticating user: ${e}`);
     throw e;
