@@ -91,3 +91,18 @@ export const uploadProfileImage = async (
 ) => {
   return uploadFile(fileBuffer, fileName, mimeType, `profile-images/${userId}`);
 };
+
+export const uploadMessageFile = async (
+  fileBuffer,
+  fileName,
+  mimeType,
+  senderId,
+  receiverId
+) => {
+  return uploadFile(
+    fileBuffer,
+    fileName,
+    mimeType,
+    `message-files/${senderId}/${receiverId}`
+  );
+};

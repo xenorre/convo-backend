@@ -1,16 +1,20 @@
 // imports
 import express from "express";
 import cookieParser from "cookie-parser";
-import { ENV } from "#config/env.js";
-import authRoutes from "#routes/auth.routes.js";
-import userRoutes from "#routes/user.routes.js";
-import securityMiddleware from "#src/middleware/security.middleware.js";
-import { requestId } from "#src/middleware/requestId.middleware.js";
-import { errorHandler } from "#src/middleware/error.middleware.js";
 import logger from "#config/logger.js";
 import morgan from "morgan";
 import cors from "cors";
 import helmet from "helmet";
+
+import { ENV } from "#config/env.js";
+
+import { requestId } from "#src/middleware/requestId.middleware.js";
+import { errorHandler } from "#src/middleware/error.middleware.js";
+
+import authRoutes from "#routes/auth.routes.js";
+import userRoutes from "#routes/user.routes.js";
+import messageRoutes from "#routes/message.routes.js";
+import securityMiddleware from "#src/middleware/security.middleware.js";
 
 const app = express();
 
@@ -45,6 +49,7 @@ app.use(securityMiddleware);
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/messages", messageRoutes);
 
 app.get("/", (req, res) => {
   res.status(200).send("Welcome to Convo API!");

@@ -13,13 +13,14 @@ import express from "express";
 
 const router = express.Router();
 
-router.get("/profile", protectRoute, getProfile);
+router.use(protectRoute);
 
-router.put("/update-profile", protectRoute, updateProfile);
+router.get("/profile", getProfile);
+
+router.put("/update-profile", updateProfile);
 
 router.put(
   "/update-profile-image",
-  protectRoute,
   uploadSingle,
   handleMulterError,
   validateFileUpload,
