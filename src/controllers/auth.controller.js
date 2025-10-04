@@ -15,6 +15,7 @@ export const signUp = async (req, res, next) => {
       return res.status(400).json({
         error: "Validation failed",
         details: formatValidationError(validationResult.error),
+        requestId: req.requestId,
       });
     }
 
@@ -23,34 +24,34 @@ export const signUp = async (req, res, next) => {
     const user = await createUser({ fullName, email, password });
 
     if (user) {
-      const token = jwttoken.sign({
-        id: user.id,
-        fullName: user.fullName,
-        email: user.email,
-      });
+      const token = jwttoken.sign({ id: user.id });
       cookies.set(res, "token", token);
     } else {
-      return res.status(400).json({ error: "Unable to create user" });
+      return res.status(400).json({ error: "Unable to create user", requestId: req.requestId });
     }
 
+    // Respond first
     res.status(201).json({
       message: "User registered successfully",
-      user: {
-        id: user.id,
-        fullName: user.fullName,
-        email: user.email,
-      },
+      user: { email: user.email },
+      requestId: req.requestId,
     });
 
-    await sendWelcomeEmail(user.email, user.fullName, ENV.CLIENT_URL);
+    // Fire-and-forget email; never affects the response
+    sendWelcomeEmail(user.email, user.fullName, ENV.CLIENT_URL).catch((err) =>
+      logger.error("Error sending welcome email", {
+        requestId: req.requestId,
+        email: user.email,
+        error: err.message,
+      })
+    );
   } catch (e) {
-    // Check if it's a duplicate email error
     if (e.message === "Email already in use") {
-      return res.status(409).json({ error: "Email already in use" });
+      return res.status(409).json({ error: "Email already in use", requestId: req.requestId });
     }
 
-    logger.error("Error in signUp:", e);
-    res.status(500).json({ error: "Internal server error" });
+    logger.error("Error in signUp", { requestId: req.requestId, error: e.message });
+    res.status(500).json({ error: "Internal server error", requestId: req.requestId });
   }
 };
 
@@ -62,68 +63,50 @@ export const login = async (req, res) => {
       return res.status(400).json({
         error: "Validation failed",
         details: formatValidationError(validationResult.error),
+        requestId: req.requestId,
       });
     }
 
     const { email, password } = validationResult.data;
     const user = await authenticateUser({ email, password });
 
-    if (!user) {
-      return res.status(500).json({ error: "Unable to authenticate user" });
-    }
-
-    const token = jwttoken.sign({
-      id: user.id,
-      fullName: user.fullName,
-      email: user.email,
-    });
-
+    const token = jwttoken.sign({ id: user.id });
     cookies.set(res, "token", token);
 
     res.status(200).json({
       message: "User logged in successfully",
-      user: {
-        id: user.id,
-        fullName: user.fullName,
-        email: user.email,
-      },
+      user: { email: user.email },
+      requestId: req.requestId,
     });
   } catch (e) {
-    // Check if it's an authentication error (invalid credentials)
     if (e.message === "Invalid email or password") {
-      return res.status(401).json({ error: "Invalid email or password" });
+      return res.status(401).json({ error: "Invalid email or password", requestId: req.requestId });
     }
 
-    // For other errors, return generic message
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: "Internal server error", requestId: req.requestId });
   }
 };
 
 export const logout = async (req, res) => {
   try {
-    // Get the current user's email from token for logging (optional)
     const token = cookies.get(req, "token");
-    let userEmail = "unknown";
+    let userId = "unknown";
 
     if (token) {
       try {
         const decoded = jwttoken.verify(token);
-        userEmail = decoded.email;
+        userId = decoded.id;
       } catch (tokenError) {
-        // Token might be invalid, but we can still proceed with logout
-        logger.warn("Invalid token during sign-out:", tokenError.message);
+        logger.warn("Invalid token during sign-out", { requestId: req.requestId, error: tokenError.message });
       }
     }
 
-    // Clear the authentication cookie
     cookies.clear(res, "token");
 
-    logger.info(`User signed out successfully: ${userEmail}`);
-    res.status(200).json({
-      message: "User signed out successfully",
-    });
+    logger.info("User signed out successfully", { requestId: req.requestId, userId });
+    res.status(200).json({ message: "User signed out successfully", requestId: req.requestId });
   } catch (e) {
-    logger.error("Error during sign-out:", e);
-    res.status(500).json({ error: "Internal server error" });
+    logger.error("Sign-out error", { requestId: req.requestId, error: e.message });
+    res.status(500).json({ error: "Internal server error", requestId: req.requestId });
   }
 };
