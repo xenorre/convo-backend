@@ -10,13 +10,12 @@ import { ENV } from "#config/env.js";
 
 import { requestId } from "#src/middleware/requestId.middleware.js";
 import { errorHandler } from "#src/middleware/error.middleware.js";
+import { app } from "./config/socket.js";
 
 import authRoutes from "#routes/auth.routes.js";
 import userRoutes from "#routes/user.routes.js";
 import messageRoutes from "#routes/message.routes.js";
 import securityMiddleware from "#src/middleware/security.middleware.js";
-
-const app = express();
 
 // Core middleware
 app.use(express.json());
@@ -27,44 +26,32 @@ app.use(helmet());
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow requests with no origin (mobile apps, Postman, etc.)
+      // Allow requests with no origin (mobile apps, curl, Postman)
       if (!origin) return callback(null, true);
 
-      // Development: allow all localhost and VS Code dev tunnels
-      if (ENV.NODE_ENV === "development") {
-        const allowedOrigins = [
-          /^https?:\/\/localhost:\d+$/, // localhost:any_port
-          /^https?:\/\/127\.0\.0\.1:\d+$/, // 127.0.0.1:any_port
-          /^https?:\/\/192\.168\.\d+\.\d+:\d+$/, // Local network IPs
-          /^https:\/\/.*\.devtunnels\.ms$/, // VS Code dev tunnels
-          /^https:\/\/.*\.github\.dev$/, // GitHub Codespaces
-        ];
+      const devAllowed = [
+        /^https?:\/\/localhost:\d+$/, // localhost:any
+        /^https?:\/\/127\.0\.0\.1:\d+$/, // 127.0.0.1:any
+        /^https?:\/\/192\.168\.\d+\.\d+:\d+$/, // local LAN
+      ];
 
-        // Check CLIENT_URL if provided
-        if (ENV.CLIENT_URL) {
-          allowedOrigins.push(ENV.CLIENT_URL);
-        }
+      // Include CLIENT_URL if provided
+      if (ENV.CLIENT_URL) devAllowed.push(ENV.CLIENT_URL);
 
-        const isAllowed = allowedOrigins.some((pattern) =>
-          typeof pattern === "string"
-            ? pattern === origin
-            : pattern.test(origin)
-        );
+      const isDev = ENV.NODE_ENV !== "production";
+      const isAllowed = (
+        isDev ? devAllowed : [ENV.CLIENT_URL].filter(Boolean)
+      ).some((pat) =>
+        typeof pat === "string" ? pat === origin : pat.test(origin)
+      );
 
-        if (isAllowed) {
-          return callback(null, true);
-        }
-      }
-
-      // Production: only allow CLIENT_URL
-      if (ENV.NODE_ENV === "production" && ENV.CLIENT_URL === origin) {
-        return callback(null, true);
-      }
-
-      callback(new Error("Not allowed by CORS"));
+      if (isAllowed) return callback(null, true);
+      return callback(new Error(`Not allowed by CORS: ${origin}`));
     },
     credentials: true,
-    optionsSuccessStatus: 200, // Support legacy browsers
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
+    optionsSuccessStatus: 200,
   })
 );
 
@@ -80,6 +67,8 @@ app.use(
     }
   )
 );
+
+// Preflight: cors() above handles OPTIONS automatically in Express 5
 
 // app.use(securityMiddleware);
 

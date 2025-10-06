@@ -2,6 +2,7 @@ import User from "#src/models/user.model.js";
 import Message from "#src/models/message.model.js";
 import { uploadMessageFile } from "#src/services/storage.service.js";
 import logger from "#src/config/logger.js";
+import { getReceiverSocketId, io } from "#src/config/socket.js";
 
 export const getAllContacts = async (req, res) => {
   try {
@@ -102,7 +103,18 @@ export const sendMessage = async (req, res) => {
       requestId: req.requestId,
     });
 
-    // todo: send message by socket.io
+    const receiverSocketId = getReceiverSocketId(receiverId);
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit("newMessage", {
+        message: newMessage,
+      });
+
+      logger.info("New message event emitted to receiver via Socket.IO", {
+        receiverId,
+        receiverSocketId,
+        messageId: newMessage._id,
+      });
+    }
 
     res.status(201).json({
       message: newMessage,
