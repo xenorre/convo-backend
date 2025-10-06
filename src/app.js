@@ -26,8 +26,45 @@ app.use(helmet());
 
 app.use(
   cors({
-    origin: ENV.CLIENT_URL ? [ENV.CLIENT_URL] : true,
+    origin: function (origin, callback) {
+      // Allow requests with no origin (mobile apps, Postman, etc.)
+      if (!origin) return callback(null, true);
+
+      // Development: allow all localhost and VS Code dev tunnels
+      if (ENV.NODE_ENV === "development") {
+        const allowedOrigins = [
+          /^https?:\/\/localhost:\d+$/, // localhost:any_port
+          /^https?:\/\/127\.0\.0\.1:\d+$/, // 127.0.0.1:any_port
+          /^https?:\/\/192\.168\.\d+\.\d+:\d+$/, // Local network IPs
+          /^https:\/\/.*\.devtunnels\.ms$/, // VS Code dev tunnels
+          /^https:\/\/.*\.github\.dev$/, // GitHub Codespaces
+        ];
+
+        // Check CLIENT_URL if provided
+        if (ENV.CLIENT_URL) {
+          allowedOrigins.push(ENV.CLIENT_URL);
+        }
+
+        const isAllowed = allowedOrigins.some((pattern) =>
+          typeof pattern === "string"
+            ? pattern === origin
+            : pattern.test(origin)
+        );
+
+        if (isAllowed) {
+          return callback(null, true);
+        }
+      }
+
+      // Production: only allow CLIENT_URL
+      if (ENV.NODE_ENV === "production" && ENV.CLIENT_URL === origin) {
+        return callback(null, true);
+      }
+
+      callback(new Error("Not allowed by CORS"));
+    },
     credentials: true,
+    optionsSuccessStatus: 200, // Support legacy browsers
   })
 );
 
@@ -44,7 +81,7 @@ app.use(
   )
 );
 
-app.use(securityMiddleware);
+// app.use(securityMiddleware);
 
 // Routes
 app.use("/api/auth", authRoutes);

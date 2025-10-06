@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { maxLength } from "zod";
 
 const messages = new mongoose.Schema(
   {
@@ -13,6 +14,8 @@ const messages = new mongoose.Schema(
     },
     text: {
       type: String,
+      trim: true,
+      maxLength: 2000,
     },
     image: {
       type: String, // This field will store file URLs (images, documents, etc.)

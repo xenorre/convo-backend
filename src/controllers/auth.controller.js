@@ -27,13 +27,19 @@ export const signUp = async (req, res, next) => {
       const token = jwttoken.sign({ id: user.id });
       cookies.set(res, "token", token);
     } else {
-      return res.status(400).json({ error: "Unable to create user", requestId: req.requestId });
+      return res
+        .status(400)
+        .json({ error: "Unable to create user", requestId: req.requestId });
     }
 
     // Respond first
     res.status(201).json({
       message: "User registered successfully",
-      user: { email: user.email },
+      user: {
+        email: user.email,
+        profilePic: user.profilePic,
+        fullName: user.fullName,
+      },
       requestId: req.requestId,
     });
 
@@ -47,11 +53,18 @@ export const signUp = async (req, res, next) => {
     );
   } catch (e) {
     if (e.message === "Email already in use") {
-      return res.status(409).json({ error: "Email already in use", requestId: req.requestId });
+      return res
+        .status(409)
+        .json({ error: "Email already in use", requestId: req.requestId });
     }
 
-    logger.error("Error in signUp", { requestId: req.requestId, error: e.message });
-    res.status(500).json({ error: "Internal server error", requestId: req.requestId });
+    logger.error("Error in signUp", {
+      requestId: req.requestId,
+      error: e.message,
+    });
+    res
+      .status(500)
+      .json({ error: "Internal server error", requestId: req.requestId });
   }
 };
 
@@ -75,15 +88,24 @@ export const login = async (req, res) => {
 
     res.status(200).json({
       message: "User logged in successfully",
-      user: { email: user.email },
+      user: {
+        email: user.email,
+        profilePic: user.profilePic,
+        fullName: user.fullName,
+        _id: user.id,
+      },
       requestId: req.requestId,
     });
   } catch (e) {
     if (e.message === "Invalid email or password") {
-      return res.status(401).json({ error: "Invalid email or password", requestId: req.requestId });
+      return res
+        .status(401)
+        .json({ error: "Invalid email or password", requestId: req.requestId });
     }
 
-    res.status(500).json({ error: "Internal server error", requestId: req.requestId });
+    res
+      .status(500)
+      .json({ error: "Internal server error", requestId: req.requestId });
   }
 };
 
@@ -97,16 +119,30 @@ export const logout = async (req, res) => {
         const decoded = jwttoken.verify(token);
         userId = decoded.id;
       } catch (tokenError) {
-        logger.warn("Invalid token during sign-out", { requestId: req.requestId, error: tokenError.message });
+        logger.warn("Invalid token during sign-out", {
+          requestId: req.requestId,
+          error: tokenError.message,
+        });
       }
     }
 
     cookies.clear(res, "token");
 
-    logger.info("User signed out successfully", { requestId: req.requestId, userId });
-    res.status(200).json({ message: "User signed out successfully", requestId: req.requestId });
+    logger.info("User signed out successfully", {
+      requestId: req.requestId,
+      userId,
+    });
+    res.status(200).json({
+      message: "User signed out successfully",
+      requestId: req.requestId,
+    });
   } catch (e) {
-    logger.error("Sign-out error", { requestId: req.requestId, error: e.message });
-    res.status(500).json({ error: "Internal server error", requestId: req.requestId });
+    logger.error("Sign-out error", {
+      requestId: req.requestId,
+      error: e.message,
+    });
+    res
+      .status(500)
+      .json({ error: "Internal server error", requestId: req.requestId });
   }
 };
