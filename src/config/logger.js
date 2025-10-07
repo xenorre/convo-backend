@@ -12,30 +12,44 @@ const consoleFormat = winston.format.printf(({ level, message, timestamp, ...met
   return `${timestamp} [${level}] ${message}${metaStr}`;
 });
 
-const logger = winston.createLogger({
-  level: ENV.LOG_LEVEL || "info",
-  format: winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.errors({ stack: true }),
-    winston.format.json()
-  ),
-  defaultMeta: { service: "convo-api" },
-  transports: [
-    new winston.transports.File({ filename: "logs/error.log", level: "error" }),
-    new winston.transports.File({ filename: "logs/combined.log" }),
-  ],
-});
+const baseFormat = winston.format.combine(
+  winston.format.timestamp(),
+  winston.format.errors({ stack: true })
+);
 
-if (ENV.NODE_ENV !== "production") {
-  logger.add(
+const transports = [];
+
+if (ENV.LOG_TO_FILES === "true") {
+  transports.push(
+    new winston.transports.File({ filename: "logs/error.log", level: "error" }),
+    new winston.transports.File({ filename: "logs/combined.log" })
+  );
+}
+
+// Always log to console; pretty in dev, JSON in prod
+if (ENV.NODE_ENV === "production") {
+  transports.push(
+    new winston.transports.Console({
+      format: winston.format.combine(baseFormat, winston.format.json()),
+    })
+  );
+} else {
+  transports.push(
     new winston.transports.Console({
       format: winston.format.combine(
+        baseFormat,
         winston.format.colorize({ all: false }),
-        winston.format.timestamp(),
         consoleFormat
       ),
     })
   );
 }
+
+const logger = winston.createLogger({
+  level: ENV.LOG_LEVEL || "info",
+  format: winston.format.combine(baseFormat, winston.format.json()),
+  defaultMeta: { service: "convo-api" },
+  transports,
+});
 
 export default logger;
