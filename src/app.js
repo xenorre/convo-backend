@@ -5,10 +5,12 @@ import logger from "#config/logger.js";
 import morgan from "morgan";
 import cors from "cors";
 import helmet from "helmet";
-import { corsConfig, securityHeaders, trustedProxies } from "#config/cors.config.js";
+import {
+  corsConfig,
+  securityHeaders,
+  trustedProxies,
+} from "#config/cors.config.js";
 import mongoose from "mongoose";
-
-import { ENV } from "#config/env.js";
 
 import { requestId } from "#src/middleware/requestId.middleware.js";
 import { errorHandler } from "#src/middleware/error.middleware.js";
@@ -46,7 +48,7 @@ app.use(
 
 // Preflight: cors() above handles OPTIONS automatically in Express 5
 
-// app.use(securityMiddleware);
+app.use(securityMiddleware);
 
 // CSRF token issuance for safe methods and endpoint to fetch it
 app.use(ensureCsrfTokenCookie);

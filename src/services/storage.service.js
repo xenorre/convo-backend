@@ -25,10 +25,14 @@ export const uploadFile = async (
 
     await s3Storage.send(command);
 
-    const urlParts = ENV.STORAGE_URL.split(".");
-    const supabaseProjectId = urlParts[0].split("//")[1];
-
-    const fileUrl = `https://${supabaseProjectId}.supabase.co/storage/v1/object/public/${ENV.STORAGE_BUCKET_NAME}/${uniqueFileName}`;
+    // Build public URL
+    const fileUrl = ENV.STORAGE_PUBLIC_URL
+      ? `${ENV.STORAGE_PUBLIC_URL.replace(/\/$/, "")}/${ENV.STORAGE_BUCKET_NAME}/${uniqueFileName}`
+      : (() => {
+          const urlParts = ENV.STORAGE_URL.split(".");
+          const supabaseProjectId = urlParts[0].split("//")[1];
+          return `https://${supabaseProjectId}.supabase.co/storage/v1/object/public/${ENV.STORAGE_BUCKET_NAME}/${uniqueFileName}`;
+        })();
 
     logger.info("File uploaded successfully", {
       fileName: uniqueFileName,
