@@ -32,8 +32,10 @@ export const protectRoute = async (req, res, next) => {
     if (!user) return res.status(404).json({ error: "User not found" });
 
     req.user = user;
+    req.user.id = String(user._id);
     next();
   } catch (error) {
+    logger.error("Auth middleware error", { error: error.message });
     res.status(500).json({ error: "Internal server error" });
   }
 };
