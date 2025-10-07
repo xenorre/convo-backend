@@ -5,6 +5,8 @@ import logger from "#config/logger.js";
 import morgan from "morgan";
 import cors from "cors";
 import helmet from "helmet";
+import { corsConfig, securityHeaders, trustedProxies } from "#config/cors.config.js";
+import mongoose from "mongoose";
 
 import { ENV } from "#config/env.js";
 
@@ -16,44 +18,18 @@ import authRoutes from "#routes/auth.routes.js";
 import userRoutes from "#routes/user.routes.js";
 import messageRoutes from "#routes/message.routes.js";
 import securityMiddleware from "#src/middleware/security.middleware.js";
+import {
+  ensureCsrfTokenCookie,
+  csrfProtection,
+} from "#src/middleware/csrf.middleware.js";
 
 // Core middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.set("trust proxy", trustedProxies);
+app.use(express.json({ limit: "1mb" }));
+app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 app.use(cookieParser());
-app.use(helmet());
-
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      // Allow requests with no origin (mobile apps, curl, Postman)
-      if (!origin) return callback(null, true);
-
-      const devAllowed = [
-        /^https?:\/\/localhost:\d+$/, // localhost:any
-        /^https?:\/\/127\.0\.0\.1:\d+$/, // 127.0.0.1:any
-        /^https?:\/\/192\.168\.\d+\.\d+:\d+$/, // local LAN
-      ];
-
-      // Include CLIENT_URL if provided
-      if (ENV.CLIENT_URL) devAllowed.push(ENV.CLIENT_URL);
-
-      const isDev = ENV.NODE_ENV !== "production";
-      const isAllowed = (
-        isDev ? devAllowed : [ENV.CLIENT_URL].filter(Boolean)
-      ).some((pat) =>
-        typeof pat === "string" ? pat === origin : pat.test(origin)
-      );
-
-      if (isAllowed) return callback(null, true);
-      return callback(new Error(`Not allowed by CORS: ${origin}`));
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
-    optionsSuccessStatus: 200,
-  })
-);
+app.use(helmet(securityHeaders));
+app.use(cors(corsConfig));
 
 app.use(requestId);
 
@@ -71,6 +47,23 @@ app.use(
 // Preflight: cors() above handles OPTIONS automatically in Express 5
 
 // app.use(securityMiddleware);
+
+// CSRF token issuance for safe methods and endpoint to fetch it
+app.use(ensureCsrfTokenCookie);
+app.get("/csrf-token", (req, res) => {
+  const token = req.cookies?.csrfToken;
+  res.status(200).json({ csrfToken: token || null });
+});
+
+// Enforce CSRF on unsafe methods globally
+app.use(csrfProtection);
+
+// Health and readiness endpoints
+app.get("/healthz", (req, res) => res.status(200).json({ status: "ok" }));
+app.get("/readyz", async (req, res) => {
+  const state = mongoose.connection.readyState; // 1 = connected
+  return state === 1 ? res.sendStatus(200) : res.sendStatus(503);
+});
 
 // Routes
 app.use("/api/auth", authRoutes);
