@@ -1,0 +1,59 @@
+version: "3.9"
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: convo-backend:dev
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: mongodb://mongo:27017/convo?replicaSet=rs0
+      JWT_SECRET: change_me_in_dev
+      JWT_EXPIRES_IN: 1d
+      CLIENT_URL: http://localhost:5173
+      LOG_LEVEL: info
+      LOG_TO_FILES: "false"
+      COOKIE_MAX_AGE_MS: 900000
+      STORAGE_URL: http://minio:9000
+      STORAGE_PUBLIC_URL: http://localhost:9000/storage/v1/object/public
+      STORAGE_ACCESS_KEY_ID: dummy
+      STORAGE_SECRET_ACCESS_KEY: dummy
+      STORAGE_BUCKET_NAME: convo
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "3000:3000"
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  mongo:
+    image: mongo:7
+    command: ["bash", "-c", "\
+      mongod --replSet rs0 --bind_ip_all && \
+      until mongosh --eval 'rs.initiate({_id:\"rs0\", members:[{_id:0, host:\"localhost:27017\"}]})' || mongosh --eval 'rs.status()'; do sleep 1; done"]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "6379:6379"
+
+volumes:
+  mongo-data:
